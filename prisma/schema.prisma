@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum BookingStatus {
+  WAITING_PAYMENT
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  EXPIRED
+  FAILED
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String
+  password  String?
+  googleId  String?   @unique
+  avatar    String?
+  role      Role      @default(USER)
+  phone     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+
+  @@map("users")
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  icon      String?
+  createdAt DateTime  @default(now())
+  services  Service[]
+
+  @@map("categories")
+}
+
+model Service {
+  id           String   @id @default(uuid())
+  name         String
+  description  String   @db.Text
+  price        Decimal  @db.Decimal(10, 2)
+  duration     Int
+  location     String?
+  images       String?
+  rating       Decimal? @db.Decimal(3, 2)
+  totalReviews Int      @default(0)
+  isActive     Boolean  @default(true)
+
+  categoryId String
+  category   Category   @relation(fields: [categoryId], references: [id])
+  bookings   Booking[]
+  slots      TimeSlot[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("services")
+}
+
+model TimeSlot {
+  id String @id @default(uuid())
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade) //onDelete: Cascade -> supaya kalo kita delete service, TimeSlot nya juga ikut kehapus
+
+  dayOfWeek   Int
+  startTime   String
+  endTime     String
+  maxBookings Int       @default(10)
+  isActive    Boolean   @default(true)
+  booking     Booking[]
+
+  createdAt DateTime @default(now())
+
+  @@map("time_slots")
+}
+
+model Booking {
+  id String @id @default(uuid())
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  serviceId  String
+  service    Service  @relation(fields: [serviceId], references: [id])
+  timeSlotId String
+  timeSlot   TimeSlot @relation(fields: [timeSlotId], references: [id])
+
+  bookingDate DateTime
+  status      BookingStatus @default(WAITING_PAYMENT)
+  notes       String?
+  totalAmount Decimal       @db.Decimal(10, 2)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  payment     Payment?
+
+  @@map("bookings")
+}
+
+model Payment {
+  id String @id @default(uuid())
+
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id])
+
+  xenditInvoiceId  String?       @unique
+  xenditPaymentUrl String?
+  amount           Decimal       @db.Decimal(10, 2)
+  status           PaymentStatus @default(UNPAID)
+  paymentMethod    String?
+  paidAt           DateTime?
+  expiredAt        DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@map("payments")
+}
