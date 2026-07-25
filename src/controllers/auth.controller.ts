@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { registerUser } from "../services/auth.service.js";
+import { loginUser, registerUser } from "../services/auth.service.js";
 import { successResponse } from "../helper/response.js";
 
 export const register = async (req: Request, res: Response) => {
@@ -26,4 +26,18 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
-export const login = (req: Request, res: Response) => {};
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    const result = await loginUser({ email, password });
+
+    return successResponse(res, 200, "Success", result);
+  } catch (error) {
+    console.log(error);
+    throw {
+      status: 500,
+      message: error instanceof Error ? error.message : "Login failed",
+    };
+  }
+};

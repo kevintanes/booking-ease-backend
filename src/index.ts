@@ -4,7 +4,7 @@ import errorHandler from "./middleware/error.handler.js";
 import authRoutes from "./routes/auth.routes.js";
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const app = express();
 const PORT = process.env.PORT || 3000;

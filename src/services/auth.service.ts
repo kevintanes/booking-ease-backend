@@ -1,12 +1,17 @@
-import prisma from "../config/prisma.js";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+import prisma from "../config/prisma.js";
+import { generateToken } from "../helper/jwt.helper.js";
 
 interface RegisterInput {
   email: string;
   name: string;
   password: string;
   phone?: string | null;
+}
+
+interface LoginInput {
+  email: string;
+  password: string;
 }
 
 export const registerUser = async (user: RegisterInput) => {
@@ -43,20 +48,47 @@ export const registerUser = async (user: RegisterInput) => {
     },
   });
 
-  const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
-    throw {
-      status: 500,
-      message: "JWT_SECRET is not configured!",
-    };
-  }
-
-  const token = jwt.sign({ userId: newUser.id }, jwtSecret, {
-    expiresIn: "1d",
-  });
+  const token = generateToken(newUser.id);
 
   return {
     newUser,
     token,
+  };
+};
+
+export const loginUser = async ({ email, password }: LoginInput) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw {
+      status: 401,
+      message: "Invalid Credentials",
+    };
+  }
+
+  if (!user.password) {
+    throw {
+      status: 401,
+      message: "Invalid Credentials",
+    };
+  }
+
+  const isMatch = await bcrypt.compare(password, user.password);
+
+  if (!isMatch) {
+    throw {
+      status: 401,
+      message: "Invalid Credentials",
+    };
+  }
+
+  const token = generateToken(user.id);
+  const { password: _, ...userWithoutPassword } = user;
+
+  return {
+    user: userWithoutPassword,
+    token: token,
   };
 };
