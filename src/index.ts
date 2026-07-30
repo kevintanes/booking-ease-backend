@@ -3,12 +3,14 @@ import type { Request, Response } from "express";
 import errorHandler from "./middleware/error.handler.js";
 import authRoutes from "./routes/auth.routes.js";
 import dotenv from "dotenv";
+import cors from "cors";
 
 dotenv.config({ quiet: true });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
 
 // routes

@@ -7,7 +7,8 @@ export const successResponse = (
   data: unknown,
 ) => {
   res.status(status || 200).json({
-    status: message,
-    data: data,
+    success: true,
+    message,
+    data,
   });
 };
