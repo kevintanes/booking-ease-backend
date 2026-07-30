@@ -13,16 +13,12 @@ export const register = async (req: Request, res: Response) => {
       phone,
     });
 
-    return successResponse(res, 201, "Success", {
+    return successResponse(res, 201, "Register Success", {
       user: newUser,
       token: token,
     });
   } catch (error) {
-    console.log(error);
-    throw {
-      status: 500,
-      message: error instanceof Error ? error.message : "Registraion failed",
-    };
+    throw error;
   }
 };
 
@@ -32,12 +28,8 @@ export const login = async (req: Request, res: Response) => {
 
     const result = await loginUser({ email, password });
 
-    return successResponse(res, 200, "Success", result);
+    return successResponse(res, 200, "Login Success", result);
   } catch (error) {
-    console.log(error);
-    throw {
-      status: 500,
-      message: error instanceof Error ? error.message : "Login failed",
-    };
+    throw error;
   }
 };
