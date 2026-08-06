@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import prisma from "../config/prisma.js";
 import { generateToken } from "../helper/jwt.helper.js";
+import { AppError } from "../utils/app-error.js";
 
 interface RegisterInput {
   email: string;
@@ -22,10 +23,7 @@ export const registerUser = async (user: RegisterInput) => {
   });
 
   if (existingUser) {
-    throw {
-      status: 400,
-      message: "User Already Exists",
-    };
+    throw new AppError("User already exists", 400);
   }
 
   const hashedPassword = await bcrypt.hash(user.password, 10);
@@ -61,27 +59,14 @@ export const loginUser = async ({ email, password }: LoginInput) => {
     where: { email },
   });
 
-  if (!user) {
-    throw {
-      status: 401,
-      message: "Invalid Credentials",
-    };
-  }
-
-  if (!user.password) {
-    throw {
-      status: 401,
-      message: "Invalid Credentials",
-    };
+  if (!user || !user.password) {
+    throw new AppError("Invalid credentials", 401);
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {
-    throw {
-      status: 401,
-      message: "Invalid Credentials",
-    };
+    throw new AppError("Invalid credentials", 401);
   }
 
   const token = generateToken(user.id);

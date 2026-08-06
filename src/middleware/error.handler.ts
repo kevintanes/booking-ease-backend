@@ -4,21 +4,24 @@ import type {
   ErrorRequestHandler,
   NextFunction,
 } from "express";
-
-interface AppError {
-  status?: number;
-  message?: string;
-}
+import { AppError } from "../utils/app-error.js";
 
 const errorHandler: ErrorRequestHandler = (
-  err: AppError,
+  err: Error | AppError,
   _req: Request,
   res: Response,
   _next: NextFunction,
 ) => {
-  res.status(err.status || 500).json({
+  const status = err instanceof AppError ? err.status : 500;
+  const message = err.message || "Internal Server Error";
+
+  if (process.env.NODE_ENV !== "production") {
+    console.error(err);
+  }
+
+  res.status(status).json({
     success: false,
-    message: err.message || "Internal Server Error",
+    message,
   });
 };
 
