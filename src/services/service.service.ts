@@ -1,12 +1,54 @@
+import type { Prisma } from "@prisma/client";
 import prisma from "../config/prisma.js";
 import { AppError } from "../utils/app-error.js";
 
-export const getServices = async () => {
+interface GetServicesParams {
+  search?: string | undefined;
+  categoryId?: string | undefined;
+  page: number;
+  limit: number;
+}
+
+export const getServices = async ({
+  limit,
+  page,
+  categoryId,
+  search,
+}: GetServicesParams) => {
+  const skip = (page - 1) * limit;
+
+  const where: Prisma.ServiceWhereInput = {};
+
+  if (search) {
+    where.OR = [
+      { name: { contains: search } },
+      { location: { contains: search } },
+      { description: { contains: search } },
+    ];
+  }
+
+  if (categoryId) {
+    where.categoryId = categoryId;
+  }
+
   const services = await prisma.service.findMany({
+    where,
     include: { category: true },
+    skip,
+    take: limit,
   });
 
-  return services;
+  const count = await prisma.service.count({ where });
+
+  return {
+    services,
+    pagination: {
+      page,
+      limit,
+      count,
+      totalPage: Math.ceil(count / limit),
+    },
+  };
 };
 
 export const getService = async (id: string) => {
