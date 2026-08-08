@@ -4,7 +4,17 @@ import { getService, getServices } from "../services/service.service.js";
 
 export const getAllService = async (req: Request, res: Response) => {
   try {
-    const result = await getServices();
+    const { search, categoryId } = req.query;
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 8;
+
+    const result = await getServices({
+      search: search as string | undefined,
+      categoryId: categoryId as string | undefined,
+      page,
+      limit,
+    });
 
     return successResponse(res, 200, "Success", result);
   } catch (error) {
