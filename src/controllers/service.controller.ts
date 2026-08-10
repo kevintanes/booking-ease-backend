@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { successResponse } from "../helper/response.js";
 import { getService, getServices } from "../services/service.service.js";
 
-export const getAllService = async (req: Request, res: Response) => {
+export const getAllServices = async (req: Request, res: Response) => {
   try {
     const { search, categoryId } = req.query;
 
