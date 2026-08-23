@@ -1,6 +1,10 @@
 import type { Request, Response } from "express";
 import { successResponse } from "../helper/response.js";
-import { getService, getServices } from "../services/service.service.js";
+import {
+  getService,
+  getServices,
+  getSlots,
+} from "../services/service.service.js";
 
 export const getAllServices = async (req: Request, res: Response) => {
   try {
@@ -29,6 +33,26 @@ export const getServiceById = async (
   try {
     const { id } = req.params;
     const result = await getService(id);
+
+    return successResponse(res, 200, "Success", result);
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getServiceSlots = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
+  try {
+    const { id } = req.params;
+    const { date } = req.query;
+
+    const targetDate = new Date(date as string);
+
+    const dayOfWeek = targetDate.getDay();
+
+    const result = await getSlots(id, date as string, dayOfWeek);
 
     return successResponse(res, 200, "Success", result);
   } catch (error) {

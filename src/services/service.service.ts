@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import prisma from "../config/prisma.js";
 import { AppError } from "../utils/app-error.js";
+import { getExistingBookings } from "./booking.service.js";
 
 interface GetServicesParams {
   search?: string | undefined;
@@ -62,4 +63,36 @@ export const getService = async (id: string) => {
   }
 
   return service;
+};
+
+export const getSlots = async (id: string, date: string, dayOfWeek: number) => {
+  const slots = await prisma.timeSlot.findMany({
+    where: {
+      serviceId: id,
+      dayOfWeek: dayOfWeek,
+    },
+    orderBy: {
+      startTime: "asc",
+    },
+  });
+
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const bookings = await getExistingBookings(id, startOfDay, endOfDay);
+
+  const bookingMap: Record<string, number> = {};
+  bookings.forEach((booking) => {
+    bookingMap[booking.timeSlotId] = booking._count.timeSlotId;
+  });
+
+  const slotsWithAvailability = slots.map((slot) => ({
+    ...slot,
+    bookedCount: bookingMap[slot.id] || 0,
+    available: (bookingMap[slot.id] || 0) < slot.maxBookings,
+  }));
+
+  return slotsWithAvailability;
 };
