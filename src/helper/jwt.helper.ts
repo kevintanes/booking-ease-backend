@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { AppError } from "../utils/app-error.js";
 
-const getJwtSecret = (): string => {
+export const getJwtSecret = (): string => {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new AppError("JWT_SECRET is not configured", 500);
