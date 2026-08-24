@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { successResponse } from "../helper/response.js";
-import { addBooking } from "../services/booking.service.js";
+import { addBooking, getBooking } from "../services/booking.service.js";
 import type { AuthenticatedRequest } from "../types/express.js";
 
 export const createBooking = async (req: Request, res: Response) => {
@@ -19,6 +19,21 @@ export const createBooking = async (req: Request, res: Response) => {
     );
 
     return successResponse(res, 201, "Success", result);
+  } catch (error) {
+    throw error;
+  }
+};
+export const getBookingById = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
+  try {
+    const { id } = req.params;
+    const { user } = req as AuthenticatedRequest;
+
+    const result = await getBooking(id, user.id);
+
+    return successResponse(res, 200, "Success", result);
   } catch (error) {
     throw error;
   }

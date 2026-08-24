@@ -59,3 +59,32 @@ export const addBooking = async (booking: AddBookingInput, userId: string) => {
 
   return newBooking;
 };
+
+export const getBooking = async (id: string, userId: string) => {
+  const booking = await prisma.booking.findFirst({
+    where: { id: id, userId: userId },
+    include: {
+      service: {
+        include: {
+          category: true,
+        },
+      },
+      timeSlot: true,
+      payment: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+    },
+  });
+
+  if (!booking) {
+    throw new AppError("Booking not found", 404);
+  }
+
+  return booking;
+};
