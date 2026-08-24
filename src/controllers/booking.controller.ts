@@ -23,6 +23,7 @@ export const createBooking = async (req: Request, res: Response) => {
     throw error;
   }
 };
+
 export const getBookingById = async (
   req: Request<{ id: string }>,
   res: Response,
