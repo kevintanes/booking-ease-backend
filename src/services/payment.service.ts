@@ -1,83 +1,86 @@
 import prisma from "../config/prisma.js";
 import { AppError } from "../utils/app-error.js";
+import { xenditRequest } from "../lib/xendit/client.js";
 
-const XENDIT_SECRET_KEY = process.env.XENDIT_SECRET_KEY;
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 
-const xenditRequest = async (endpoint, method, body) => {
-  const credentials = Buffer.from(XENDIT_SECRET_KEY + ":").toString("base64");
-  const response = await fetch(`https://api.xendit.co${endpoint}`, {
-    method,
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      "Content-Type": "application/json",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  return response.json();
-};
+export interface XenditInvoiceResponse {
+  id: string;
+  invoice_url: string;
+  status: string;
+  external_id: string;
+  error_code?: string;
+  message?: string;
+}
 
 export const makePayment = async (bookingId: string, userId: string) => {
   const booking = await prisma.booking.findFirst({
     where: { id: bookingId },
-    include: {
-      service: true,
-      user: true,
-    },
+    include: { service: true, user: true },
   });
 
-  if (booking?.status !== "WAITING_PAYMENT") {
+  if (!booking) {
+    throw new AppError("Booking not found", 404);
+  }
+
+  if (booking.userId !== userId) {
+    throw new AppError("You are not allowed to access this booking", 403);
+  }
+
+  if (booking.status !== "WAITING_PAYMENT") {
     throw new AppError("Payment already processed!", 400);
   }
 
   const existingPayment = await prisma.payment.findUnique({
-    where: {
-      bookingId: booking.id,
-    },
+    where: { bookingId: booking.id },
   });
 
-  if (
+  const isExistingPaymentUsable =
     existingPayment &&
     existingPayment.status === "UNPAID" &&
-    existingPayment.xenditPaymentUrl
-  ) {
+    existingPayment.xenditPaymentUrl &&
+    existingPayment.expiredAt !== null &&
+    existingPayment.expiredAt > new Date();
+
+  if (isExistingPaymentUsable) {
     return existingPayment;
   }
 
   const expiredAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-  const invoiceData = await xenditRequest(`/v2/invoices`, "POST", {
-    external_id: `booking_${booking.id}_${Date.now()}`,
-    amount: Number(booking.totalAmount),
-    description: `Booking for ${booking.service.name}`,
-    invoice_duration: 86400,
-    customer: {
-      given_names: booking.user.name,
-      email: booking.user.email,
-    },
-    customer_notification_preference: {
-      invoice_created: ["email"],
-      invoice_reminder: ["email"],
-      invoice_paid: ["email"],
-    },
-    success_redirect_url: `${CLIENT_ORIGIN}/bookings/${booking.id}?payment=success`,
-    failed_redirect_url: `${CLIENT_ORIGIN}/bookings/${booking.id}?payment=failed`,
-    currency: "IDR",
-    item: [
-      {
-        name: booking.service.name,
-        quantity: 1,
-        price: Number(booking.totalAmount),
-        category: "Service",
+  const invoiceData = await xenditRequest<XenditInvoiceResponse>(
+    "/v2/invoices",
+    "POST",
+    {
+      external_id: `booking_${booking.id}_${Date.now()}`,
+      amount: Number(booking.totalAmount),
+      description: `Booking for ${booking.service.name}`,
+      invoice_duration: 86400,
+      customer: {
+        given_names: booking.user.name,
+        email: booking.user.email,
       },
-    ],
-  });
-
-  console.log(76, invoiceData);
+      customer_notification_preference: {
+        invoice_created: ["email"],
+        invoice_reminder: ["email"],
+        invoice_paid: ["email"],
+      },
+      success_redirect_url: `${CLIENT_ORIGIN}/bookings/${booking.id}?payment=success`,
+      failed_redirect_url: `${CLIENT_ORIGIN}/bookings/${booking.id}?payment=failed`,
+      currency: "IDR",
+      item: [
+        {
+          name: booking.service.name,
+          quantity: 1,
+          price: Number(booking.totalAmount),
+          category: "Service",
+        },
+      ],
+    },
+  );
 
   if (invoiceData.error_code) {
-    console.log("Xendit error: ", invoiceData);
+    console.error("Xendit error:", invoiceData);
     throw new AppError(`Payment gateway error: ${invoiceData.message}`, 500);
   }
 
@@ -102,9 +105,7 @@ export const makePayment = async (bookingId: string, userId: string) => {
 
   await prisma.booking.update({
     where: { id: booking.id },
-    data: {
-      status: "PENDING",
-    },
+    data: { status: "PENDING" },
   });
 
   return payment;
