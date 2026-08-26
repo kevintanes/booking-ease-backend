@@ -26,8 +26,8 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/categories", categoryRoutes);
-app.use("/api/bookings", authenticate, bookingRoutes);
-app.use("/api/payments", authenticate, paymentRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/payments", paymentRoutes);
 
 app.use(errorHandler);
 

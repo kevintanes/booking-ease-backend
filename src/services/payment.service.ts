@@ -110,3 +110,48 @@ export const makePayment = async (bookingId: string, userId: string) => {
 
   return payment;
 };
+
+export const handleInvoiceWebhookEvent = async (event: {
+  id: string;
+  status: string;
+  payment_method?: string;
+  paid_at?: string;
+}) => {
+  if (event.status === "PAID" || event.status === "SETTLED") {
+    const payment = await prisma.payment.findFirst({
+      where: { xenditInvoiceId: event.id },
+    });
+
+    if (!payment) return;
+
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: "PAID",
+        paymentMethod: event.payment_method ?? null,
+        paidAt: new Date(event.paid_at || Date.now()),
+      },
+    });
+
+    await prisma.booking.update({
+      where: { id: payment.bookingId },
+      data: { status: "CONFIRMED" },
+    });
+  } else if (event.status === "EXPIRED") {
+    const payment = await prisma.payment.findFirst({
+      where: { xenditInvoiceId: event.id },
+    });
+
+    if (!payment) return;
+
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: { status: "EXPIRED" },
+    });
+
+    await prisma.booking.update({
+      where: { id: payment.bookingId },
+      data: { status: "CANCELLED" },
+    });
+  }
+};
