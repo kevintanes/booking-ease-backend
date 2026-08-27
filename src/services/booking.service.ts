@@ -88,3 +88,24 @@ export const getBooking = async (id: string, userId: string) => {
 
   return booking;
 };
+
+export const cancelBooking = async (id: string, userId: string) => {
+  const booking = await prisma.booking.findFirst({
+    where: { id: id, userId: userId },
+  });
+
+  if (!booking) {
+    throw new AppError("Booking not found", 404);
+  }
+
+  if (["COMPLETED", "CANCELLED"].includes(booking.status)) {
+    throw new AppError("Cannot cancel this booking", 400);
+  }
+
+  const update = await prisma.booking.update({
+    where: { id: id },
+    data: { status: "CANCELLED" },
+  });
+
+  return update;
+};
