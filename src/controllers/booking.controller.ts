@@ -5,6 +5,7 @@ import {
   addBooking,
   cancelBooking,
   getBooking,
+  getBookingCountStats,
   getBookings,
 } from "../services/booking.service.js";
 import type { AuthenticatedRequest } from "../types/express.js";
@@ -75,6 +76,18 @@ export const cancelBookingById = async (
     const { user } = req as AuthenticatedRequest;
 
     const result = await cancelBooking(id, user.id);
+
+    return successResponse(res, 200, "Success", result);
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getBookingStats = async (req: Request, res: Response) => {
+  try {
+    const { user } = req as AuthenticatedRequest;
+
+    const result = await getBookingCountStats(user.id);
 
     return successResponse(res, 200, "Success", result);
   } catch (error) {

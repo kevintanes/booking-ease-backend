@@ -1,4 +1,4 @@
-import type { BookingStatus, Prisma } from "@prisma/client";
+import { BookingStatus, type Prisma } from "@prisma/client";
 import prisma from "../config/prisma.js";
 import { AppError } from "../utils/app-error.js";
 
@@ -65,6 +65,31 @@ export const addBooking = async (booking: AddBookingInput, userId: string) => {
   });
 
   return newBooking;
+};
+
+export const getBookingCountStats = async (userId: string) => {
+  const [confirmed, upcoming, completed] = await Promise.all([
+    prisma.booking.count({
+      where: { userId, status: BookingStatus.CONFIRMED },
+    }),
+    prisma.booking.count({
+      where: {
+        userId,
+        status: {
+          in: [BookingStatus.WAITING_PAYMENT, BookingStatus.PENDING],
+        },
+      },
+    }),
+    prisma.booking.count({
+      where: { userId, status: BookingStatus.COMPLETED },
+    }),
+  ]);
+
+  return {
+    confirmed,
+    upcoming,
+    completed,
+  };
 };
 
 export const getBookings = async (userId: string, query: PaginationQuery) => {
