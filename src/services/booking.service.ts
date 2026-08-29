@@ -1,3 +1,4 @@
+import type { BookingStatus, Prisma } from "@prisma/client";
 import prisma from "../config/prisma.js";
 import { AppError } from "../utils/app-error.js";
 
@@ -6,6 +7,12 @@ interface AddBookingInput {
   timeSlotId: string;
   bookingDate: string;
   notes?: string;
+}
+
+interface PaginationQuery {
+  status?: BookingStatus;
+  page?: number;
+  limit?: number;
 }
 
 export const getExistingBookings = async (
@@ -58,6 +65,42 @@ export const addBooking = async (booking: AddBookingInput, userId: string) => {
   });
 
   return newBooking;
+};
+
+export const getBookings = async (userId: string, query: PaginationQuery) => {
+  const page = Math.max(query.page ?? 1, 1);
+  const limit = Math.max(query.limit ?? 10, 1);
+  const skip = (page - 1) * limit;
+
+  const whereClause: Prisma.BookingWhereInput = {
+    userId,
+    ...(query.status ? { status: query.status } : {}),
+  };
+
+  const [bookings, total] = await Promise.all([
+    prisma.booking.findMany({
+      where: whereClause,
+      include: {
+        service: { include: { category: true } },
+        timeSlot: true,
+        payment: true,
+      },
+      skip,
+      take: limit,
+      orderBy: { bookingDate: "desc" },
+    }),
+    prisma.booking.count({ where: whereClause }),
+  ]);
+
+  return {
+    bookings,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPage: Math.ceil(total / limit),
+    },
+  };
 };
 
 export const getBooking = async (id: string, userId: string) => {
