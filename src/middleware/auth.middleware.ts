@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import prisma from "../config/prisma.js";
 import { getJwtSecret } from "../helper/jwt.helper.js";
+import type { Role } from "@prisma/client";
 
 export const authenticate = async (
   req: Request,
@@ -45,6 +46,18 @@ export const authenticate = async (
     req.user = user;
     next();
   } catch (error) {
-    return res.status(401).json();
+    return res.status(401).json({ status: false, message: "Unauthorized" });
   }
+};
+
+export const authorize = (...roles: Role[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({
+        status: false,
+        message: "Forbidden",
+      });
+    }
+    next();
+  };
 };
