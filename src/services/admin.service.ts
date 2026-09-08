@@ -37,7 +37,7 @@ export const getAdminDashboard = async () => {
     total: {
       totalBookings,
       totalPendings,
-      totalRevenue: totalRevenue._sum.amount ?? 0,
+      totalRevenue: Number(totalRevenue._sum.amount) ?? 0,
       totalUsers,
     },
     recentBookings,
