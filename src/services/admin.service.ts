@@ -60,16 +60,14 @@ export const getAllAdminBookings = async ({
   const skip = (page - 1) * limit;
   const whereClause: Prisma.BookingWhereInput = {};
 
+  if (status) whereClause.status = status;
+
   if (search) {
     whereClause.OR = [
       { user: { name: { contains: search } } },
       { user: { email: { contains: search } } },
       { service: { name: { contains: search } } },
     ];
-  }
-
-  if (status) {
-    whereClause.status = status;
   }
 
   const bookings = await prisma.booking.findMany({
