@@ -1,8 +1,8 @@
+import type { Role } from "@prisma/client";
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import prisma from "../config/prisma.js";
 import { getJwtSecret } from "../helper/jwt.helper.js";
-import type { Role } from "@prisma/client";
 
 export const authenticate = async (
   req: Request,

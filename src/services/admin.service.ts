@@ -1,6 +1,13 @@
-import { BookingStatus, type Prisma } from "@prisma/client";
+import type { BookingStatus, Prisma } from "@prisma/client";
 import prisma from "../config/prisma.js";
 import { AppError } from "../utils/app-error.js";
+
+interface QueryParams {
+  search?: string;
+  status?: BookingStatus;
+  page: number;
+  limit: number;
+}
 
 export const getAdminDashboard = async () => {
   const [
@@ -42,4 +49,86 @@ export const getAdminDashboard = async () => {
     },
     recentBookings,
   };
+};
+
+export const getAllAdminBookings = async ({
+  limit,
+  page,
+  search,
+  status,
+}: QueryParams) => {
+  const skip = (page - 1) * limit;
+  const whereClause: Prisma.BookingWhereInput = {};
+
+  if (status) whereClause.status = status;
+
+  if (search) {
+    whereClause.OR = [
+      { user: { name: { contains: search } } },
+      { user: { email: { contains: search } } },
+      { service: { name: { contains: search } } },
+    ];
+  }
+
+  const bookings = await prisma.booking.findMany({
+    where: whereClause,
+
+    select: {
+      id: true,
+      bookingDate: true,
+      status: true,
+      totalAmount: true,
+      createdAt: true,
+      user: {
+        select: { name: true, email: true },
+      },
+      service: {
+        select: {
+          name: true,
+          category: { select: { name: true, icon: true } },
+        },
+      },
+      timeSlot: {
+        select: { startTime: true, endTime: true },
+      },
+      payment: {
+        select: { status: true, paymentMethod: true },
+      },
+    },
+    skip,
+    take: limit,
+    orderBy: { createdAt: "asc" },
+  });
+
+  const count = await prisma.booking.count({
+    where: whereClause,
+  });
+
+  return {
+    bookings,
+    pagination: {
+      page,
+      limit,
+      count,
+      totalPage: Math.ceil(count / limit),
+    },
+  };
+};
+
+export const patchBookingStatus = async (
+  bookingId: string,
+  status: BookingStatus,
+) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+  });
+
+  if (!booking) {
+    throw new AppError("Booking not found.", 404);
+  }
+
+  return prisma.booking.update({
+    where: { id: bookingId },
+    data: { status },
+  });
 };
