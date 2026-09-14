@@ -3,6 +3,7 @@ import {
   createService,
   deleteService,
   getAdminBookings,
+  getAllUsers,
   getDashboardStats,
   updateBookingStatus,
   updateService,
@@ -19,5 +20,6 @@ router.patch("/bookings/:id/status", updateBookingStatus);
 router.post("/services", createService);
 router.patch("/services/:id", updateService);
 router.delete("/services/:id", deleteService);
+router.get("/users", getAllUsers);
 
 export default router;
