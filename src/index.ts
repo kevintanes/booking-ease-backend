@@ -1,3 +1,6 @@
+import dns from "node:dns";
+dns.setDefaultResultOrder("ipv4first");
+
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
@@ -8,6 +11,8 @@ import bookingRoutes from "./routes/booking.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import serviceRoutes from "./routes/service.routes.js";
+import "./config/passport.js";
+import passport from "passport";
 
 dotenv.config({ quiet: true });
 
@@ -21,6 +26,7 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use(passport.initialize());
 
 // routes
 app.use("/api/auth", authRoutes);
