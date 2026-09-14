@@ -207,3 +207,37 @@ export const removeService = async (serviceId: string) => {
 
   return service;
 };
+
+export const getUsers = async ({ limit, page }: QueryParams) => {
+  const skip = (page - 1) * limit;
+
+  const users = await prisma.user.findMany({
+    where: { role: "USER" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      avatar: true,
+      createdAt: true,
+      _count: { select: { bookings: true } },
+    },
+    skip,
+    take: limit,
+    orderBy: { createdAt: "desc" },
+  });
+
+  const count = await prisma.user.count({
+    where: { role: "USER" },
+  });
+
+  return {
+    users,
+    pagination: {
+      page,
+      limit,
+      count,
+      totalPage: Math.ceil(count / limit),
+    },
+  };
+};

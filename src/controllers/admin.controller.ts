@@ -4,6 +4,7 @@ import {
   editService,
   getAdminDashboard,
   getAllAdminBookings,
+  getUsers,
   patchBookingStatus,
   removeService,
 } from "../services/admin.service.js";
@@ -167,5 +168,25 @@ export const deleteService = async (
     return successResponse(res, 200, "Success", result);
   } catch (err) {
     next(err);
+  }
+};
+
+export const getAllUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const result = await getUsers({
+      limit,
+      page,
+    });
+
+    return successResponse(res, 200, "Success", result);
+  } catch (error) {
+    next(error);
   }
 };
