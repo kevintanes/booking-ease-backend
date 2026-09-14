@@ -1,11 +1,14 @@
 import type { NextFunction, Request, Response } from "express";
 import {
+  addService,
+  editService,
   getAdminDashboard,
   getAllAdminBookings,
   patchBookingStatus,
+  removeService,
 } from "../services/admin.service.js";
 import { successResponse } from "../helper/response.js";
-import { BookingStatus } from "@prisma/client";
+import { BookingStatus, type Service } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
 
 export const getDashboardStats = async (
@@ -66,5 +69,103 @@ export const updateBookingStatus = async (
     return successResponse(res, 200, "Success", result);
   } catch (error) {
     next(error);
+  }
+};
+
+export const createService = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { name, description, price, duration, location, categoryId, slots } =
+      req.body;
+
+    if (
+      !name ||
+      !description ||
+      !categoryId ||
+      price === undefined ||
+      duration === undefined
+    ) {
+      throw new AppError(
+        "name, description, price, duration, and categoryId are required",
+        400,
+      );
+    }
+
+    const parsedPrice = parseFloat(price);
+    const parsedDuration = parseInt(duration, 10);
+
+    if (isNaN(parsedPrice) || isNaN(parsedDuration)) {
+      throw new AppError("price and duration must be valid numbers", 400);
+    }
+
+    const result = await addService({
+      name,
+      description,
+      price: parsedPrice,
+      duration: parsedDuration,
+      location,
+      categoryId,
+      slots,
+    });
+
+    return successResponse(res, 201, "Success", result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateService = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const {
+      name,
+      description,
+      price,
+      duration,
+      location,
+      categoryId,
+      isActive,
+      slots,
+    } = req.body;
+
+    const { id } = req.params;
+
+    const service = {
+      ...(name && { name }),
+      ...(description && { description }),
+      ...(price && { price: parseFloat(price) }),
+      ...(duration && { duration: parseInt(duration) }),
+      ...(location !== undefined && { location }),
+      ...(categoryId && { categoryId }),
+      ...(isActive !== undefined && { isActive }),
+    };
+
+    const result = await editService(id as string, service, slots);
+
+    return successResponse(res, 200, "Success", result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteService = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { id } = req.params;
+
+    const result = await removeService(id as string);
+
+    return successResponse(res, 200, "Success", result);
+  } catch (err) {
+    next(err);
   }
 };

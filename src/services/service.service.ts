@@ -34,7 +34,7 @@ export const getServices = async ({
 
   const services = await prisma.service.findMany({
     where,
-    include: { category: true },
+    include: { category: true, slots: true },
     skip,
     take: limit,
   });

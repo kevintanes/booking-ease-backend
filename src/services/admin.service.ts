@@ -1,5 +1,10 @@
 import type { BookingStatus, Prisma } from "@prisma/client";
 import prisma from "../config/prisma.js";
+import type {
+  CreateServiceInput,
+  TimeSlotInput,
+  UpdateServiceInput,
+} from "../types/service.types.js";
 import { AppError } from "../utils/app-error.js";
 
 interface QueryParams {
@@ -131,4 +136,74 @@ export const patchBookingStatus = async (
     where: { id: bookingId },
     data: { status },
   });
+};
+
+export const addService = async (serviceData: CreateServiceInput) => {
+  const { slots, ...serviceFields } = serviceData;
+
+  return prisma.$transaction(async (tx) => {
+    const service = await tx.service.create({ data: serviceFields });
+
+    if (slots && slots.length > 0) {
+      await tx.timeSlot.createMany({
+        data: slots.map((s) => ({
+          dayOfWeek: s.dayOfWeek,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          maxBookings: 10,
+          serviceId: service.id,
+        })),
+      });
+    }
+
+    return tx.service.findUnique({
+      where: { id: service.id },
+      include: { category: true, slots: true },
+    });
+  });
+};
+
+export const editService = async (
+  serviceId: string,
+  newData: UpdateServiceInput,
+  slots?: TimeSlotInput[],
+) => {
+  return prisma.$transaction(async (tx) => {
+    const service = await tx.service.update({
+      where: { id: serviceId },
+      data: newData,
+    });
+
+    if (slots !== undefined) {
+      await tx.timeSlot.deleteMany({
+        where: { serviceId: service.id },
+      });
+
+      if (slots.length > 0) {
+        await tx.timeSlot.createMany({
+          data: slots.map((s) => ({
+            dayOfWeek: s.dayOfWeek,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            serviceId: service.id,
+            maxBookings: 10,
+          })),
+        });
+      }
+    }
+
+    return tx.service.findUnique({
+      where: { id: service.id },
+      include: { category: true, slots: true },
+    });
+  });
+};
+
+export const removeService = async (serviceId: string) => {
+  const service = await prisma.service.update({
+    where: { id: serviceId },
+    data: { isActive: false },
+  });
+
+  return service;
 };
