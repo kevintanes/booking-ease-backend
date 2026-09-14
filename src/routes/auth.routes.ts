@@ -7,11 +7,12 @@ import {
 } from "../controllers/auth.controller.js";
 import passport from "passport";
 import { authenticate } from "../middleware/auth.middleware.js";
+import { env } from "../config/env.js";
 
 const router = express.Router();
 
-router.post(`/register`, register);
-router.post(`/login`, login);
+router.post("/register", register);
+router.post("/login", login);
 
 router.get(
   "/google",
@@ -24,7 +25,7 @@ router.get(
   "/google/callback",
   passport.authenticate("google", {
     session: false,
-    failureRedirect: `${process.env.CLIENT_ORIGIN}/login?error=oauth_failed`,
+    failureRedirect: `${env.CLIENT_ORIGIN}/login?error=oauth_failed`,
   }),
   googleCallback,
 );

@@ -1,63 +1,55 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { env } from "./env.js";
 import prisma from "./prisma.js";
 
 passport.use(
   new GoogleStrategy(
     {
-      clientID: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: process.env.GOOGLE_CALLBACK_URL,
+      clientID: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      callbackURL: env.GOOGLE_CALLBACK_URL,
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const email = profile.emails[0].value;
+        const email = profile.emails?.[0]?.value;
+        if (!email) {
+          return done(
+            new Error("Google account has no accessible email"),
+            false,
+          );
+        }
+
         const name = profile.displayName;
         const googleId = profile.id;
-        const avatar = profile.photos?.[0]?.value;
+        const avatar = profile.photos?.[0]?.value ?? null;
 
         let user = await prisma.user.findUnique({
-          where: {
-            googleId: googleId,
-          },
+          where: { googleId },
         });
 
         if (!user) {
-          // Upsert
           user = await prisma.user.findUnique({
-            where: {
-              email: email,
-            },
+            where: { email },
           });
 
           if (user) {
-            // User Ada maka Update
+            // User ada (daftar manual sebelumnya) -> link akun Google
             user = await prisma.user.update({
-              where: {
-                email: email,
-              },
-              data: {
-                googleId: googleId,
-                avatar: avatar,
-              },
+              where: { email },
+              data: { googleId, avatar },
             });
           } else {
-            // User Tidak ada maka Create
+            // User baru
             user = await prisma.user.create({
-              data: {
-                email: email,
-                name: name,
-                googleId: googleId,
-                avatar: avatar,
-                role: "USER",
-              },
+              data: { email, name, googleId, avatar, role: "USER" },
             });
           }
         }
 
         return done(null, user);
       } catch (error) {
-        return done(error, null);
+        return done(error as Error, false);
       }
     },
   ),
