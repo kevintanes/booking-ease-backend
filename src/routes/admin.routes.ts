@@ -3,6 +3,7 @@ import {
   createService,
   deleteService,
   getAdminBookings,
+  getAllServicesAdmin,
   getAllUsers,
   getDashboardStats,
   updateBookingStatus,
@@ -17,6 +18,7 @@ router.use(authenticate, authorize("ADMIN"));
 router.get("/dashboard-stats", getDashboardStats);
 router.get("/bookings", getAdminBookings);
 router.patch("/bookings/:id/status", updateBookingStatus);
+router.get("/services", getAllServicesAdmin);
 router.post("/services", createService);
 router.patch("/services/:id", updateService);
 router.delete("/services/:id", deleteService);

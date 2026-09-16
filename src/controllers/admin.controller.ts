@@ -11,6 +11,7 @@ import {
 import { successResponse } from "../helper/response.js";
 import { BookingStatus, type Service } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
+import { getServices } from "../services/service.service.js";
 
 export const getDashboardStats = async (
   req: Request,
@@ -66,6 +67,30 @@ export const updateBookingStatus = async (
       id as string,
       status as BookingStatus,
     );
+
+    return successResponse(res, 200, "Success", result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAllServicesAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { search, categoryId } = req.query;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const result = await getServices({
+      search: search as string | undefined,
+      categoryId: categoryId as string | undefined,
+      page,
+      limit,
+      includeInactive: true,
+    });
 
     return successResponse(res, 200, "Success", result);
   } catch (error) {
