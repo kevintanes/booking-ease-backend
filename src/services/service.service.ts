@@ -8,6 +8,7 @@ interface GetServicesParams {
   categoryId?: string | undefined;
   page: number;
   limit: number;
+  includeInactive?: boolean;
 }
 
 export const getServices = async ({
@@ -15,6 +16,7 @@ export const getServices = async ({
   page,
   categoryId,
   search,
+  includeInactive = false,
 }: GetServicesParams) => {
   const skip = (page - 1) * limit;
 
@@ -26,6 +28,10 @@ export const getServices = async ({
       { location: { contains: search } },
       { description: { contains: search } },
     ];
+  }
+
+  if (!includeInactive) {
+    where.isActive = true;
   }
 
   if (categoryId) {
